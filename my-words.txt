@@ -1,0 +1,9 @@
+# My own words. Edit this file on GitHub (pencil icon) or locally, then commit & push.
+# One word per line. Plural, gender and English are looked up automatically, e.g.:
+#
+# die Tasse
+# Stift
+#
+# To spell everything out yourself:  article noun; plural; emoji; English
+#
+# die Katze; Katzen; 🐈; cat

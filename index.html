@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Nomen-Trainer</title>
+<meta name="theme-color" content="#1f2937">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+  <header>
+    <h1>Nomen-Trainer</h1>
+    <div id="stats" aria-live="polite"></div>
+  </header>
+
+  <section class="card" id="card">
+    <div id="pic" aria-label="Picture of the noun"></div>
+    <div id="english"></div>
+
+    <form id="form" autocomplete="off">
+      <label>Singular (with article)
+        <input id="sg" type="text" placeholder="e.g. die Tasse" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" enterkeyhint="next">
+      </label>
+      <label>Plural
+        <input id="pl" type="text" placeholder="e.g. Tassen" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" enterkeyhint="done">
+      </label>
+
+      <div id="chars" aria-label="Special characters">
+        <button type="button" data-ch="ä">ä</button>
+        <button type="button" data-ch="ö">ö</button>
+        <button type="button" data-ch="ü">ü</button>
+        <button type="button" data-ch="ß">ß</button>
+        <button type="button" data-ch="Ä">Ä</button>
+        <button type="button" data-ch="Ö">Ö</button>
+        <button type="button" data-ch="Ü">Ü</button>
+      </div>
+
+      <div class="actions">
+        <button type="submit" id="check" class="primary">Check</button>
+        <button type="button" id="skip">Show answer</button>
+      </div>
+    </form>
+
+    <div id="result" hidden></div>
+    <button type="button" id="next" class="primary wide" hidden>Next →</button>
+  </section>
+
+  <details id="settings">
+    <summary>Settings &amp; my word list</summary>
+
+    <div class="row">
+      <label class="chk"><input type="checkbox" id="optEnglish"> Show English meaning</label>
+      <label class="chk"><input type="checkbox" id="optPhotos"> Use Wikipedia photos instead of emoji (needs internet)</label>
+      <label class="chk"><input type="checkbox" id="optArticle"> Require the article in the singular</label>
+    </div>
+
+    <div class="row">
+      <label>Words to practise
+        <select id="optSource">
+          <option value="both">Built-in + my list</option>
+          <option value="builtin">Built-in only</option>
+          <option value="custom">My list only</option>
+        </select>
+      </label>
+    </div>
+
+    <label>My words
+      <textarea id="custom" rows="8" spellcheck="false" placeholder="die Tasse&#10;der Stift&#10;das Fenster&#10;&#10;or with everything spelled out:&#10;die Tasse; Tassen; ☕; cup"></textarea>
+    </label>
+    <p class="hint">One word per line (or separated by commas). Plural, gender and English are looked up automatically on Wiktionary.
+      To set them yourself use <code>article noun; plural; emoji; English</code>. Lines starting with # are ignored.</p>
+    <div class="actions">
+      <button type="button" id="saveCustom" class="primary">Save list</button>
+      <button type="button" id="resetProg">Reset progress</button>
+    </div>
+    <div id="customStatus" class="hint"></div>
+  </details>
+</main>
+
+<script src="words.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
