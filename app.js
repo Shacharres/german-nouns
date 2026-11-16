@@ -150,7 +150,7 @@ if (typeof document !== "undefined") (function () {
   };
 
   const settings = Object.assign({ english: true, photos: false, reqArt: true, source: "both" }, store.get("settings", {}));
-  const state = { words: [], cur: null, phase: "ask", session: { n: 0, ok: 0, streak: 0 }, lastInput: null, picToken: 0 };
+  const state = { words: [], cur: null, phase: "ask", session: { n: 0, ok: 0, streak: 0 }, lastInput: null, picToken: 0, attempts: 0 };
 
   /* ---------- word list ---------- */
   function builtinWords() {
@@ -278,10 +278,13 @@ if (typeof document !== "undefined") (function () {
     const w = pickNext();
     state.cur = w;
     state.phase = "ask";
+    state.attempts = 0;
     $("#result").hidden = true;
     $("#next").hidden = true;
     $("#check").disabled = false;
+    $("#check").textContent = "Check";
     $("#skip").disabled = false;
+    $("#skip").hidden = false;
     $("#sg").value = "";
     $("#pl").value = "";
     if (!w) { $("#pic").textContent = "Add some words below."; $("#english").textContent = ""; return; }
@@ -292,26 +295,43 @@ if (typeof document !== "undefined") (function () {
     renderStats();
   }
 
+  // "Give up & next" after a wrong attempt, or plain "Next" once the word is settled.
+  function onNext() {
+    if (state.phase === "ask" && state.cur) settle(state.cur, 0);
+    nextWord();
+  }
+
   function artSpan(art, text) { return `<span class="art-${art}">${esc(text)}</span>`; }
 
-  function finish(w, ev, skipped) {
+  // Record the final result for a word once: 1 point first try, 0.5 after a retry, 0 if given up.
+  function settle(w, points) {
     state.phase = "checked";
-    const ok = !skipped && ev.allOk;
     const s = state.session;
-    s.n++; if (ok) { s.ok++; s.streak++; } else s.streak = 0;
+    s.n++; s.ok += points;
+    if (points === 1) s.streak++; else s.streak = 0;
     const prog = store.get("prog", {});
     const p = prog[w.key] || { s: 0, c: 0, w: 0 };
-    if (ok) { p.s++; p.c++; } else { p.s = 0; p.w++; }
+    if (points === 1) { p.s++; p.c++; }
+    else if (points === 0.5) { p.c += 0.5; }          // needed a retry: not mastered yet, but not forgotten
+    else { p.s = 0; p.w++; }
     prog[w.key] = p;
     store.set("prog", prog);
     const tot = store.get("totals", { n: 0, ok: 0 });
-    tot.n++; if (ok) tot.ok++;
+    tot.n++; tot.ok += points;
     store.set("totals", tot);
+    renderStats();
+  }
 
+  // status: "first" | "retry" | "wrong" | "skipped"
+  function renderResult(w, ev, status) {
+    const good = status === "first" || status === "retry";
     const plShown = w.plurals.map(x => esc(x)).join(" / ");
-    let html = `<div class="answer ${ok ? "ok" : "bad"}">${artSpan(w.art, w.art)} ${esc(w.noun)}<span class="sep">→</span>${artSpan("die", "die")} ${plShown}</div>`;
+    let html = `<div class="answer ${good ? "ok" : "bad"}">${artSpan(w.art, w.art)} ${esc(w.noun)}<span class="sep">→</span>${artSpan("die", "die")} ${plShown}</div>`;
+    if (status === "first") html += `<div class="pts ok">+1 point</div>`;
+    else if (status === "retry") html += `<div class="pts ok">+½ point (correct on retry)</div>`;
+    else if (status === "wrong") html += `<div class="pts">Fix it and press <b>Check again</b> — ½ point if you get it right. Or give up and move on.</div>`;
 
-    if (!skipped) {
+    if (ev) {
       // singular
       if (ev.artOk && ev.nounOk) {
         html += `<div class="fb ok"><span class="tag">Singular ✓</span>${ev.nounCap ? ` <span class="note">(nouns are capitalised: ${esc(w.noun)})</span>` : ""}</div>`;
@@ -340,30 +360,51 @@ if (typeof document !== "undefined") (function () {
     const result = $("#result");
     result.innerHTML = html;
     result.hidden = false;
+  }
+
+  function lockWord() {
     $("#check").disabled = true;
     $("#skip").disabled = true;
+    $("#next").textContent = "Next →";
     $("#next").hidden = false;
     $("#next").focus({ preventScroll: true });
-    renderStats();
   }
 
   function check(skipped) {
     if (state.phase !== "ask" || !state.cur) return;
     const w = state.cur;
+    if (skipped) { settle(w, 0); renderResult(w, null, "skipped"); lockWord(); return; }
+
     const ev = evaluate(w, $("#sg").value, $("#pl").value, settings.reqArt);
-    finish(w, ev, skipped);
+    state.attempts++;
+    if (ev.allOk) {
+      const pts = state.attempts === 1 ? 1 : 0.5;
+      settle(w, pts);
+      renderResult(w, ev, pts === 1 ? "first" : "retry");
+      lockWord();
+    } else {
+      renderResult(w, ev, "wrong");
+      $("#check").textContent = "Check again";
+      $("#skip").hidden = true;
+      $("#next").textContent = "Give up → next";
+      $("#next").hidden = false;
+      const el = (ev.artOk && ev.nounOk) ? $("#pl") : $("#sg");   // jump to the field that needs fixing
+      el.focus({ preventScroll: true });
+      el.select();
+    }
   }
 
   function renderStats() {
+    const fmt = n => String(Math.round(n * 2) / 2);
     const s = state.session, t = store.get("totals", { n: 0, ok: 0 });
     const pct = t.n ? Math.round(100 * t.ok / t.n) : 0;
-    $("#stats").textContent = `Session ${s.ok}/${s.n} · 🔥 ${s.streak} · All-time ${pct}% (${t.n})`;
+    $("#stats").textContent = `Session ${fmt(s.ok)}/${s.n} · 🔥 ${s.streak} · All-time ${pct}% (${t.n})`;
   }
 
   /* ---------- wiring ---------- */
   $("#form").addEventListener("submit", e => { e.preventDefault(); check(false); });
   $("#skip").addEventListener("click", () => check(true));
-  $("#next").addEventListener("click", nextWord);
+  $("#next").addEventListener("click", onNext);
 
   $("#sg").addEventListener("keydown", e => {
     if (e.key === "Enter" && state.phase === "ask") { e.preventDefault(); $("#pl").focus(); }

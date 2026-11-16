@@ -62,3 +62,5 @@ details > * { margin-top: 12px; }
 .chk input { width: 20px; height: 20px; }
 .hint { font-size: .85rem; color: var(--muted); }
 code { background: var(--bg); padding: 1px 5px; border-radius: 4px; }
+.pts { text-align: center; font-size: .92rem; color: var(--muted); margin-top: 8px; }
+.pts.ok { color: var(--ok); font-weight: 700; }
