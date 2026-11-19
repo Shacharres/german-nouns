@@ -32,8 +32,8 @@ input[type=text], textarea, select {
   color: var(--fg); background: var(--bg); border: 2px solid var(--line); border-radius: 10px; font-family: inherit;
 }
 input[type=text]:focus, textarea:focus, select:focus { outline: none; border-color: var(--accent); }
-#chars { display: flex; gap: 6px; flex-wrap: wrap; margin: 2px 0 12px; }
-#chars button { flex: 1; min-width: 38px; padding: 9px 0; font-size: 1.1rem; }
+.chars { display: flex; gap: 6px; flex-wrap: wrap; margin: 2px 0 12px; }
+.chars button { flex: 1; min-width: 38px; padding: 9px 0; font-size: 1.1rem; }
 button {
   font: inherit; padding: 11px 16px; border-radius: 10px; border: 1px solid var(--line);
   background: var(--bg); color: var(--fg); cursor: pointer; touch-action: manipulation;
@@ -64,3 +64,27 @@ details > * { margin-top: 12px; }
 code { background: var(--bg); padding: 1px 5px; border-radius: 4px; }
 .pts { text-align: center; font-size: .92rem; color: var(--muted); margin-top: 8px; }
 .pts.ok { color: var(--ok); font-weight: 700; }
+
+/* tabs */
+#tabs { display: flex; gap: 6px; margin-bottom: 12px; }
+#tabs button { flex: 1; padding: 10px; font-weight: 600; background: var(--card); }
+#tabs button.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+[hidden] { display: none !important; }
+
+/* verbs */
+#vtitle { font-size: 1.35rem; font-weight: 700; margin: 14px 0 8px; text-align: center; }
+.seg { display: flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; margin-bottom: 8px; }
+.seg button { flex: 1; border: 0; border-radius: 0; padding: 9px 4px; font-size: .95rem; background: var(--bg); }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button.on { background: var(--accent); color: #fff; font-weight: 600; }
+#vtable { width: 100%; border-collapse: collapse; }
+#vtable td { padding: 9px 6px; border-bottom: 1px solid var(--line); }
+#vtable tr:last-child td { border-bottom: 0; }
+#vtable td:first-child { color: var(--muted); width: 38%; font-size: .95rem; }
+#vtable td:last-child { font-weight: 600; font-size: 1.1rem; }
+#vmeta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+#vmeta span, #vrecent button { background: var(--bg); border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px; font-size: .85rem; }
+#vmeta a { color: var(--accent); }
+#vrecent { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
+#vrecent button { cursor: pointer; }
+.warn { color: var(--bad); }

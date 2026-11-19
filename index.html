@@ -17,6 +17,12 @@
     <div id="stats" aria-live="polite"></div>
   </header>
 
+  <nav id="tabs" role="tablist">
+    <button type="button" role="tab" data-tab="nouns" class="on">Nouns</button>
+    <button type="button" role="tab" data-tab="verbs">Verbs</button>
+  </nav>
+
+  <div id="tab-nouns">
   <section class="card" id="card">
     <div id="pic" aria-label="Picture of the noun"></div>
     <div id="english"></div>
@@ -29,7 +35,7 @@
         <input id="pl" type="text" placeholder="e.g. Tassen" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" enterkeyhint="done">
       </label>
 
-      <div id="chars" aria-label="Special characters">
+      <div class="chars" aria-label="Special characters">
         <button type="button" data-ch="ä">ä</button>
         <button type="button" data-ch="ö">ö</button>
         <button type="button" data-ch="ü">ü</button>
@@ -79,9 +85,38 @@
     </div>
     <div id="customStatus" class="hint"></div>
   </details>
+  </div>
+
+  <div id="tab-verbs" hidden>
+    <section class="card">
+      <form id="vform" autocomplete="off">
+        <label>Verb (infinitive)
+          <input id="vin" type="text" placeholder="e.g. gehen, aufstehen, sich freuen" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" enterkeyhint="go">
+        </label>
+        <div class="chars" aria-label="Special characters">
+          <button type="button" data-ch="ä">ä</button>
+          <button type="button" data-ch="ö">ö</button>
+          <button type="button" data-ch="ü">ü</button>
+          <button type="button" data-ch="ß">ß</button>
+        </div>
+        <button type="submit" class="primary wide" id="vgo">Conjugate</button>
+      </form>
+      <div id="vstatus" class="hint" aria-live="polite"></div>
+
+      <div id="vresult" hidden>
+        <div id="vtitle"></div>
+        <div id="tenses" class="seg" role="tablist"></div>
+        <table id="vtable"></table>
+        <div id="vmeta"></div>
+        <div id="vnote" class="hint"></div>
+      </div>
+      <div id="vrecent"></div>
+    </section>
+  </div>
 </main>
 
 <script src="words.js"></script>
+<script src="verbs.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

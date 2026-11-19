@@ -1,6 +1,6 @@
 // Network-first service worker: always tries the latest files, falls back to cache when offline.
-const CACHE = "nomen-v1";
-const SHELL = ["./", "index.html", "style.css", "app.js", "words.js", "my-words.txt", "manifest.webmanifest", "icons/icon.svg"];
+const CACHE = "nomen-v2";
+const SHELL = ["./", "index.html", "style.css", "app.js", "words.js", "verbs.js", "my-words.txt", "manifest.webmanifest", "icons/icon.svg"];
 
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));

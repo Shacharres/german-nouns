@@ -150,7 +150,7 @@ if (typeof document !== "undefined") (function () {
   };
 
   const settings = Object.assign({ english: true, photos: false, reqArt: true, source: "both" }, store.get("settings", {}));
-  const state = { words: [], cur: null, phase: "ask", session: { n: 0, ok: 0, streak: 0 }, lastInput: null, picToken: 0, attempts: 0 };
+  const state = { words: [], cur: null, phase: "ask", session: { n: 0, ok: 0, streak: 0 }, lastInput: null, picToken: 0, attempts: 0, tab: "nouns" };
 
   /* ---------- word list ---------- */
   function builtinWords() {
@@ -410,15 +410,15 @@ if (typeof document !== "undefined") (function () {
     if (e.key === "Enter" && state.phase === "ask") { e.preventDefault(); $("#pl").focus(); }
   });
   document.addEventListener("keydown", e => {
-    if (e.key === "Enter" && !e.repeat && state.phase === "checked" && !(e.target instanceof HTMLButtonElement) &&
+    if (e.key === "Enter" && !e.repeat && state.tab === "nouns" && state.phase === "checked" && !(e.target instanceof HTMLButtonElement) &&
         !(e.target instanceof HTMLTextAreaElement) && !(e.target instanceof HTMLSelectElement)) {
       e.preventDefault(); nextWord();
     }
   });
-  for (const id of ["#sg", "#pl"]) $(id).addEventListener("focus", e => { state.lastInput = e.target; });
+  for (const id of ["#sg", "#pl", "#vin"]) $(id).addEventListener("focus", e => { state.lastInput = e.target; });
 
   // special characters: don't steal focus (keeps the phone keyboard open)
-  document.querySelectorAll("#chars button").forEach(b => {
+  document.querySelectorAll(".chars button").forEach(b => {
     const insert = e => {
       e.preventDefault();
       const el = state.lastInput || $("#sg");
@@ -456,9 +456,122 @@ if (typeof document !== "undefined") (function () {
     }
   });
 
+  /* ---------- tabs ---------- */
+  function setTab(tab) {
+    state.tab = tab;
+    store.set("tab", tab);
+    for (const b of document.querySelectorAll("#tabs button")) b.classList.toggle("on", b.dataset.tab === tab);
+    $("#tab-nouns").hidden = tab !== "nouns";
+    $("#tab-verbs").hidden = tab !== "verbs";
+    $("#stats").hidden = tab !== "nouns";
+    if (tab === "verbs") $("#vin").focus({ preventScroll: true });
+    else if (state.phase === "ask" && state.cur) $("#sg").focus({ preventScroll: true });
+  }
+  $("#tabs").addEventListener("click", e => {
+    const b = e.target.closest("button[data-tab]");
+    if (b) setTab(b.dataset.tab);
+  });
+
+  /* ---------- verbs ---------- */
+  const vstate = { tense: "pres", data: null };
+
+  async function fetchVerbPage(inf) {
+    const url = "https://de.wiktionary.org/w/api.php?action=query&prop=revisions&rvprop=content&rvslots=main" +
+      "&format=json&formatversion=2&origin=*&redirects=1&titles=" + encodeURIComponent(inf);
+    const r = await fetch(url);
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    const j = await r.json();
+    const page = j.query && j.query.pages && j.query.pages[0];
+    const text = page && page.revisions && page.revisions[0].slots.main.content;
+    return parseVerbWiktionary(text);          // null when there is no German verb table
+  }
+
+  function rememberVerb(label) {
+    const list = [label].concat(store.get("vrecent", []).filter(x => x !== label)).slice(0, 12);
+    store.set("vrecent", list);
+    renderRecent();
+  }
+  function renderRecent() {
+    const list = store.get("vrecent", []);
+    $("#vrecent").innerHTML = list.map(v => `<button type="button" data-v="${esc(v)}">${esc(v)}</button>`).join("");
+  }
+
+  async function lookupVerb(raw) {
+    let inf = raw.trim().toLowerCase().replace(/\s+/g, " ");
+    let reflexive = false;
+    if (inf.startsWith("sich ")) { reflexive = true; inf = inf.slice(5).trim(); }
+    if (!inf) return;
+    const status = $("#vstatus");
+    const cache = store.get("verbs", {});
+    let info = cache[inf], source = "wiktionary", failed = false;
+    if (!info) {
+      status.textContent = `Looking up “${inf}” …`;
+      try {
+        info = await fetchVerbPage(inf);
+        if (info) { cache[inf] = info; store.set("verbs", cache); }
+      } catch { failed = true; }
+    }
+    if (!info && failed) {                       // offline / lookup blocked: guess regular verbs
+      info = regularVerbData(inf);
+      source = "guess";
+    }
+    if (!info) {
+      vstate.data = null;
+      $("#vresult").hidden = true;
+      status.innerHTML = failed
+        ? `Couldn't reach Wiktionary, and “${esc(inf)}” isn't a simple regular verb I can guess. Try again when you're online.`
+        : `“${esc(inf)}” wasn't found as a German verb. Use the infinitive, e.g. <i>gehen</i>, <i>aufstehen</i>, <i>sich freuen</i>.`;
+      return;
+    }
+    status.textContent = "";
+    vstate.data = { inf, reflexive, info, source, conj: conjugate(info, inf, reflexive) };
+    rememberVerb((reflexive ? "sich " : "") + inf);
+    renderVerb();
+  }
+
+  function renderVerb() {
+    const d = vstate.data;
+    if (!d) return;
+    $("#vresult").hidden = false;
+    $("#vtitle").textContent = (d.reflexive ? "sich " : "") + d.inf;
+    $("#tenses").innerHTML = VERB_TENSES.map(t =>
+      `<button type="button" role="tab" data-tense="${t.key}" class="${t.key === vstate.tense ? "on" : ""}">${t.label}</button>`).join("");
+    $("#vtable").innerHTML = VERB_PERSONS.map(p =>
+      `<tr><td>${esc(p.label)}</td><td>${esc(d.conj[vstate.tense][p.key])}</td></tr>`).join("");
+    const chips = [
+      `Hilfsverb: ${esc(d.conj.aux.join(" / "))}`,
+      `Partizip II: ${esc(d.conj.pp.join(" / ") || "—")}`,
+      `<a href="https://de.wiktionary.org/wiki/${encodeURIComponent(d.inf)}" target="_blank" rel="noopener">Wiktionary ↗</a>`
+    ];
+    $("#vmeta").innerHTML = chips.map(c => `<span>${c}</span>`).join("");
+    const notes = [];
+    if (d.source === "guess") notes.push(`<span class="warn">Offline: these are regular-verb guesses and may be wrong for irregular or separable verbs.</span>`);
+    if (d.reflexive) notes.push("Reflexive pronouns are shown in the accusative (mich, dich, sich …). For dative reflexives use mir, dir instead.");
+    $("#vnote").innerHTML = notes.join("<br>");
+  }
+
+  $("#tenses").addEventListener("click", e => {
+    const b = e.target.closest("button[data-tense]");
+    if (!b) return;
+    vstate.tense = b.dataset.tense;
+    renderVerb();
+  });
+  $("#vform").addEventListener("submit", e => {
+    e.preventDefault();
+    lookupVerb($("#vin").value).then(() => { if (vstate.data) $("#vin").blur(); });
+  });
+  $("#vrecent").addEventListener("click", e => {
+    const b = e.target.closest("button[data-v]");
+    if (!b) return;
+    $("#vin").value = b.dataset.v;
+    lookupVerb(b.dataset.v);
+  });
+
   /* ---------- start ---------- */
   rebuildWords();
   nextWord();
+  renderRecent();
+  setTab(location.hash === "#verbs" ? "verbs" : store.get("tab", "nouns") === "verbs" ? "verbs" : "nouns");
   fetch("my-words.txt", { cache: "no-cache" })
     .then(r => r.ok ? r.text() : "")
     .catch(() => "")
